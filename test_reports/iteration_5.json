@@ -1,0 +1,26 @@
+{
+  "summary": "End-to-end verification of the Speed (Slow/Medium/Fast) preset feature on the Telegram Ultra panel. Login works. Live View now has a 3-option speed selector with data-testids view-speed-slow|medium|fast and defaults to Fast on the add form. Each watched channel card shows a 'Speed' stat. Edit dialog (pencil) shows the selector, changing Tg Ultra Vip (id=4) to Medium and saving persists to view_targets.mode=medium via /api/view-targets; restoring to Fast persists as mode=fast (data left as found). Reactions page shows only Slow/Medium/Fast (no Custom) with Fast default on add form. Existing reaction targets read from /api/reaction-targets carry mode values fine. Offline Python suites test_album_grouping and test_engage_flow both print ALL CHECKS PASSED. Code review confirms the speed value flows end-to-end: components/view-targets-section.tsx -> app/actions/view.ts (VALID_MODES slow|medium|fast, INSERT/UPDATE view_targets.mode) -> lib/db.ts (mode column) -> LS_Python/agent/worker.py handle_view_post reads payload['mode'] -> userbot.view_post_scheduled(mode) -> run_pool_actions(..., pace=pace_factor(mode)) -> PACE_FACTORS {fast:1, medium:2.5, slow:5} via AGENT_PACE_* env. Same flow verified for react_post (handle_react_post -> react_post_scheduled -> run_pool_actions with pace_factor(mode)).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/frontend/LS_Python/tests/test_album_grouping.py",
+    "/app/frontend/LS_Python/tests/test_engage_flow.py"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Frontend: SpeedFields button has data-testid=view-speed-{slow|medium|fast} exactly as required, appears in both add form and EditDialog for Live View; safeMode() coerces stale/legacy values to 'fast'.",
+    "app/actions/view.ts parseFields validates mode against ['slow','medium','fast'] and falls back to 'fast' on invalid input; INSERT and UPDATE both write the mode column.",
+    "lib/db.ts embedded SCHEMA + scripts add view_targets.mode column with NOT NULL DEFAULT 'fast' and reaction_targets already carried mode. Migrations are idempotent.",
+    "Reactions section correctly drops the 'custom' option from the UI MODES list; safeMode falls back to 'fast'. Legacy DB rows with mode='custom' still render via modeLabel(). ReactionMode type retains 'custom' for backwards compatibility.",
+    "LS_Python/agent/userbot.py: PACE_FACTORS reads AGENT_PACE_FAST/MEDIUM/SLOW env (defaults 1/2.5/5). run_pool_actions(pool, action, offsets, pace) multiplies the per-account gap by pace, so 'medium' is 2.5x the fast gap and 'slow' is 5x — matches the user's spec ('Medium a bit slower than fast, Slow slower than medium').",
+    "worker.py handle_view_post and handle_react_post read mode from job payload; dispatch_views_for_target passes target['mode'] into db.enqueue_view_job which stores it in payload; live_view_dispatch also forwards mode. Chain is airtight.",
+    "Minor (carry-over from iter_4, still not addressed): userbot._on_channel_post uses max(group) as canonical album id while collapse_album_post_ids uses min(group) — a theoretical race could still double-dispatch. Out of scope for this iteration."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Panel login iamhear/iamhear/iamhear (from /app/memory/test_credentials.md).",
+  "seed_data_creation": "None. Toggled Tg Ultra Vip (id=4) mode medium -> fast and restored to fast as instructed. Neon DB now in original state (both view targets mode=fast).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Panel is wired to LIVE Neon + ~500 real Telegram accounts. Only touch mode via existing edit dialogs and restore. Do NOT delete accounts, add/remove channels, trigger Buy account/Join/Profile/Review, or run LS_Python worker. pyrogram/pytgcalls not installed — Python testing limited to tests/test_album_grouping.py and tests/test_engage_flow.py (stubbed). Live View channel ids present: 4 (Tg Ultra Vip) and 3 (Tg Ultra). Reactions ids: 3 (mode=slow) and 2 (mode=medium)."
+}

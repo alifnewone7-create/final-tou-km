@@ -1,0 +1,31 @@
+{
+  "summary": "End-to-end verification of the new 'Generate with AI' name generator on Profile > Name list (random). Backend POST /api/generate-names is wired to Groq (openai/gpt-oss-120b) using GROQ_API_KEY/GROQ_MODEL from frontend/.env. Auth guard, validation, and JSON-object response parsing all behave correctly. UI dialog renders with correct data-testids, defaults quantity=20 and the Bengali-request-derived prompt, and appends generated names to #name_list without wiping existing content.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "route.ts correctly clamps quantity 1-500, requires prompt, dedupes case-insensitive, slices to requested length, returns 401/400/502 with clear error messages, and never leaks the API key.",
+    "GenerateNamesDialog uses controlled quantity/prompt state, disables submit while loading or when inputs empty, closes on success only, shows toast on both success/error - solid UX.",
+    "profile-section.tsx appends via setNameList((prev)=>prev?`${prev}\\n${names.join('\\n')}`:names.join('\\n')) - guarantees append semantics, verified with seed 'SeedName1/2' + 5 names + 3 more names all preserved in order.",
+    "Occasional upstream Groq 502 observed when firing multiple generation requests within ~30s (rate limiting on the user's Groq key). Backend surfaces it as 502 with error text and UI shows a toast; not a code bug, just a note for the user."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Panel login iamhear/iamhear/iamhear (from /app/memory/test_credentials.md). Groq key sourced from frontend/.env, never logged.",
+  "seed_data_creation": "None. Typed 'SeedName1/SeedName2' into the Profile > Name list textarea during append test and cleared it before finishing. 'Apply to selected' was never clicked, so no real Telegram account was modified.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Feature scope: Profile > Name list (random) shows a 'Generate with AI' button (data-testid=generate-names-open) next to the label; opens a dialog with data-testid generate-names-quantity/prompt/submit; backend at POST /api/generate-names uses Groq. Groq occasionally returns 502 under rapid-fire calls - a single retry is enough. Panel is on LIVE Neon DB with 499 real Telegram accounts; do NOT click 'Apply to selected', delete accounts, or run LS_Python workers.",
+  "verified_scenarios": [
+    "POST /api/generate-names unauthenticated -> 401 {error:'Unauthorized'}",
+    "POST with only quantity, no prompt -> 400 'Enter a prompt describing the name styles.'",
+    "POST authed quantity=3 -> 200 with exactly 3 names (['Arif-SailorMoon 🌙','Sharmeen-Naruto 🍜','Jahan-Mikasa ⚔️'])",
+    "POST authed quantity=25 -> 200 with 25 unique names mixing Bangladeshi/anime/trading styles + emoji",
+    "Custom prompt 'only single-word anime names, no emoji' -> 200 with names like Naruto/Bleach/Gintama/Akira - constraints honoured",
+    "UI: login OK, no 'Database not connected' banner, Profile section renders with mode toggle, username, photo picker",
+    "UI: 'Generate with AI' button visible beside Name list label; dialog shows correct default quantity (20) and full styles prompt",
+    "UI: setting quantity=6 & submitting appended exactly 6 unique names to #name_list, dialog closed, success toast",
+    "UI: second generation (qty=3) appended 3 more names WITHOUT overwriting the seed lines or the first batch (append order preserved)"
+  ]
+}

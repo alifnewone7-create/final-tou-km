@@ -1,0 +1,36 @@
+{
+  "summary": "Verified the mobile Users-page overflow + icon-only Import CSV / Buy account fix on the Telegram Ultra panel. Logged in as iamhear/iamhear/iamhear on 390x844 and 360x740 and validated no horizontal page scroll, icon-only mobile labels, working dialogs and search, and desktop non-regression at 1920x800. Did NOT submit any dialogs or delete any accounts (LIVE DB).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Users page account card (mobile 390 & 360)", "issues": ["Inside individual account cards the top-right row 'flex items-center gap-1' (status badge + trash button) has boundingClientRect.right = 417px on a 390px viewport (and same on 360). It does NOT cause page-level horizontal scroll because the card clips it (documentElement.scrollWidth == innerWidth on both widths), but the 'Needs my.telegram code' badge visually gets clipped/cut off at the right edge of narrow cards. Consider making the badge shrink/wrap or letting the card row use flex-wrap so the badge stays fully readable on <=390 screens. This is unrelated to the toolbar fix under review."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "OPTIONAL polish (not blocking): the 'Needs my.telegram code' status badge on account cards gets visually clipped at 360-390px because the badge+trash row overflows the card. Add flex-wrap / truncate / shorter label on <sm to keep it fully visible."
+  ],
+  "critical_code_review_comments": [
+    "accounts-section.tsx toolbar refactor (flex w-full min-w-0 flex-wrap + w-full sm:w-56 search) is correct and resolves the page-level horizontal overflow.",
+    "Import CSV and Buy account buttons correctly wrap their label in 'hidden sm:inline' so mobile renders icon-only while desktop keeps the label — verified visually and by inner_text() (mobile empty, desktop 'Import CSV' / 'Buy account')."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped per request)", "frontend": "100% of requested checks passed"},
+  "test_credentials": "iamhear / iamhear / iamhear (panel login) — from /app/memory/test_credentials.md",
+  "seed_data_creation": "None. LIVE Neon DB with 499 real Telegram accounts — only opened/closed dialogs, no submits/deletes.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iteration 7 covered the mobile Users-toolbar overflow bug fix. Verified: (a) documentElement.scrollWidth == innerWidth (390 and 360), (b) [data-testid=import-accounts-button] and [data-testid=buy-account-button] inner_text() is empty on mobile (icon only) and equals 'Import CSV'/'Buy account' on desktop, (c) search magnifier expands the input to w-full without page overflow and filters accounts, (d) both dialogs (Import CSV, Buy account) open on mobile and were closed via Escape without submitting. Section nav on mobile is behind a hamburger — the mobile-nav-* buttons live inside a collapsible sidebar; the second run started a fresh context so login was lost mid-check; but in the first run the Users page was reachable and no overflow was seen. One residual minor visual issue documented in design_issues.",
+  "detailed_measurements": {
+    "390x844": {"documentElement.scrollWidth": 390, "window.innerWidth": 390, "search_open_scrollWidth": 390, "search_typing_scrollWidth": 390},
+    "360x740": {"documentElement.scrollWidth": 360, "window.innerWidth": 360},
+    "mobile_import_button_inner_text": "",
+    "mobile_buy_button_inner_text": "",
+    "desktop_import_button_inner_text": "Import CSV",
+    "desktop_buy_button_inner_text": "Buy account",
+    "import_dialog_opens_mobile": true,
+    "buy_dialog_opens_mobile": true
+  }
+}

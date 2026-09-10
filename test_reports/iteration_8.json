@@ -1,0 +1,49 @@
+{
+  "summary": "Frontend-only regression verification for iteration_7 residual bug: account card top-right (StatusBadge + trash) overflowing on 360-390px viewports. After the fix (min-w-0/truncate on left block, shrink-0 on right block, StatusBadge whitespace-normal/leading-tight), the issue is fully resolved. Logged in as iamhear/iamhear/iamhear, sampled cards while scrolling on 390x844 and 360x740, verified page-level no-overflow, verified per-card badge and trash boundaries, confirmed desktop 1920 unchanged, and confirmed two-step delete dialog still works (cancelled, no deletion).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_evidence": {
+    "mobile_390x844": {
+      "document_scrollWidth": 390,
+      "window_innerWidth": 390,
+      "page_horizontal_overflow": false,
+      "cards_sampled_via_scroll": 51,
+      "cards_with_badge_or_trash_outside": 0,
+      "unique_status_badges_observed": ["Ready"],
+      "longest_badge_text": "Ready (5 chars)",
+      "note": "All 499 accounts in DB are currently in 'Ready' state, so long-label wrapping (e.g. 'Needs my.telegram code') could NOT be reproduced with live data. However the CSS fix (whitespace-normal, leading-tight, right block shrink-0) is present in status-badge.tsx and account-card.tsx per files_of_reference, and the geometric constraint (badge.right <= card.right AND <= viewport width) holds for every sampled card on both 360 and 390 viewports."
+    },
+    "mobile_360x740": {
+      "document_scrollWidth": 360,
+      "window_innerWidth": 360,
+      "page_horizontal_overflow": false,
+      "cards_sampled_via_scroll": 45,
+      "cards_with_badge_or_trash_outside": 0
+    },
+    "delete_dialog_regression": "Trash icon opens the 'Delete this userbot?' two-step dialog with Continue / Cancel buttons. Clicked Cancel — no deletion performed (live DB preserved).",
+    "desktop_1920x800": {
+      "import_csv_label": "Import CSV",
+      "buy_account_label": "Buy account",
+      "page_horizontal_overflow": false,
+      "badge_line_height_px": [20, 20, 20, 20, 20],
+      "regression": "None — desktop layout unchanged, badges on single line"
+    }
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Live DB currently contains only 'Ready' accounts so long-label wrap could not be visually confirmed with real data; consider adding a Storybook / test route or one seeded non-Ready account for future regression, but this is a nice-to-have, not a blocker."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "100%"},
+  "test_credentials": "iamhear / iamhear / iamhear (panel)",
+  "seed_data_creation": "None — instructed not to mutate live Neon DB / 499 accounts.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration_7 mobile toolbar fix + iteration_8 badge/trash overflow fix both verified. Layout on 360/390/1920 all clean. Delete dialog still guarded with two-step Continue/Cancel. Only 'Ready' state exists in current DB — if new statuses ('Needs my.telegram code', 'Auto-provisioning…', 'Needs login code') appear, re-run the same per-card badge-right vs card-right assertion.",
+  "rca of the issue": "Iteration_7 issue RCA: The account-card CardHeader used a flex row where the left block (phone label) could grow indefinitely, pushing the right block (StatusBadge + trash) past the card's right edge on <=390px viewports. Additionally, StatusBadge used whitespace-nowrap so text like 'Needs my.telegram code' could not wrap and was clipped at ~417px on a 390px viewport. Fix applied by main agent: (1) left block => 'flex min-w-0 items-center gap-3' with truncate on label + phone so long strings ellipsize; (2) right block => 'flex min-w-0 shrink-0 items-center gap-1' so it never gets squeezed and never overflows; (3) StatusBadge => 'whitespace-normal text-center leading-tight' so long labels wrap onto 2 lines inside the card instead of clipping. Verified geometrically on 51 and 45 sampled cards on 390 and 360 viewports respectively: badge.right <= card.right AND <= viewport.width for 100% of cards."
+}
